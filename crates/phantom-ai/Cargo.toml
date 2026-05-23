@@ -1,0 +1,29 @@
+[package]
+name    = "phantom-ai"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tokio.workspace           = true
+serde.workspace           = true
+serde_json.workspace      = true
+anyhow.workspace          = true
+thiserror.workspace       = true
+tracing.workspace         = true
+reqwest.workspace         = true
+eventsource-stream.workspace = true
+uuid.workspace            = true
+chrono.workspace          = true
+directories.workspace     = true
+
+# Audio file reading for whisper preprocessing
+hound = "3.5"
+
+# Regex for timestamp parsing in Video Q&A
+regex = "1"
+
+# dirs for model cache path
+dirs = "5"
+
+# Internal
+phantom-billing = { workspace = true }

@@ -1,0 +1,23 @@
+[package]
+name    = "phantom-voice"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tokio.workspace      = true
+anyhow.workspace     = true
+thiserror.workspace  = true
+tracing.workspace    = true
+serde.workspace      = true
+
+# RNNoise port for noise suppression
+nnnoiseless = "0.5"
+
+# ONNX for Silero-VAD
+
+
+# Audio I/O cross-platform
+cpal = "0.15"
+
+# For downloading models (workspace version, includes blocking feature)
+reqwest.workspace = true

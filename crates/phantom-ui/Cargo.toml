@@ -1,0 +1,34 @@
+[package]
+name    = "phantom-ui"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tokio.workspace      = true
+anyhow.workspace     = true
+thiserror.workspace  = true
+tracing.workspace    = true
+serde.workspace      = true
+serde_json.workspace = true
+uuid.workspace       = true
+chrono.workspace     = true
+
+# UI framework
+egui  = "0.29"
+eframe = { version = "0.29", features = ["wgpu"] }
+qrcodegen = "1.8.0"
+rfd = "0.14"
+dirs = "5"
+
+# Internal
+phantom-core    = { workspace = true }
+phantom-ai      = { workspace = true }
+phantom-storage = { workspace = true }
+phantom-billing = { workspace = true }
+phantom-uplink  = { workspace = true }
+hound = "3.5"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = "0.3"

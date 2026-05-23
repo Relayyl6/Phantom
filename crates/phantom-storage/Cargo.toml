@@ -1,0 +1,24 @@
+[package]
+name    = "phantom-storage"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tokio.workspace      = true
+anyhow.workspace     = true
+thiserror.workspace  = true
+tracing.workspace    = true
+serde.workspace      = true
+serde_json.workspace = true
+uuid.workspace       = true
+chrono.workspace     = true
+# Paths
+directories.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# SQLite
+rusqlite = { version = "0.31", features = ["bundled", "backup"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+rexie = "0.5" # IndexedDB abstraction
+

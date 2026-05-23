@@ -1,0 +1,21 @@
+[package]
+name    = "phantom-uplink"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tokio.workspace      = true
+anyhow.workspace     = true
+thiserror.workspace  = true
+tracing.workspace    = true
+serde.workspace      = true
+serde_json.workspace = true
+reqwest.workspace    = true
+sha2.workspace       = true
+hex.workspace        = true
+semver.workspace     = true
+uuid.workspace       = true
+chrono.workspace     = true
+
+# Internal
+phantom-billing = { workspace = true }

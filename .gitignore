@@ -1,0 +1,9 @@
+/target
+*/target
+.env
+*.mp4
+*.wav
+*.log
+Phantom/recordings/
+/crates/web/node_modules
+web/node_modules
