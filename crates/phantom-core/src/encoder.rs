@@ -62,6 +62,8 @@ pub struct Encoder {
     audio_tmp: Option<std::fs::File>,
     video_tmp_path: PathBuf,
     audio_tmp_path: PathBuf,
+    actual_width: u32,
+    actual_height: u32,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -79,6 +81,8 @@ impl Encoder {
             audio_tmp: None,
             video_tmp_path,
             audio_tmp_path,
+            actual_width: 0,
+            actual_height: 0,
         })
     }
 
@@ -97,8 +101,13 @@ impl Encoder {
         Ok(())
     }
 
-    pub fn push_video_frame(&mut self, data: &[u8], _width: u32, _height: u32, _pts_ms: u64) -> Result<()> {
+    pub fn push_video_frame(&mut self, data: &[u8], width: u32, height: u32, _pts_ms: u64) -> Result<()> {
         if !self.running { return Ok(()); }
+        
+        if self.actual_width == 0 {
+            self.actual_width = width;
+            self.actual_height = height;
+        }
         
         if let Some(ref mut file) = self.video_tmp {
             use std::io::Write;
@@ -134,8 +143,8 @@ impl Encoder {
         self.video_tmp = None;
         self.audio_tmp = None;
         
-        let width = if self.config.width == 0 { 1920 } else { self.config.width };
-        let height = if self.config.height == 0 { 1080 } else { self.config.height };
+        let width = if self.actual_width == 0 { 1920 } else { self.actual_width };
+        let height = if self.actual_height == 0 { 1080 } else { self.actual_height };
 
         let ffmpeg_bin = if std::path::Path::new("ffmpeg.exe").exists() {
             "ffmpeg.exe".to_string()

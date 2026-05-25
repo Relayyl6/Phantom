@@ -33,7 +33,7 @@ impl VideoPlayer {
         }
     }
 
-    pub fn request_seek(&mut self, timestamp_ms: u64, playing: bool, ctx: egui::Context) {
+    pub fn request_seek(&mut self, timestamp_ms: u64, playing: bool, ctx: egui::Context) -> Result<(), String> {
         self.stop_tx = None; 
         let (tx, mut stop_rx) = tokio::sync::oneshot::channel();
         self.stop_tx = Some(tx);
@@ -41,36 +41,38 @@ impl VideoPlayer {
         self.frame_rx = Some(frame_rx);
 
         let source = self.source_path.clone();
-        std::thread::spawn(move || {
-            let start_sec = timestamp_ms as f64 / 1000.0;
-            
-            let ffmpeg_cmd = if std::path::Path::new("ffmpeg.exe").exists() {
-                "ffmpeg.exe".to_string()
-            } else if let Ok(exe_dir) = std::env::current_exe().map(|p| p.parent().unwrap_or(std::path::Path::new(".")).to_path_buf()) {
-                let candidate = exe_dir.join("ffmpeg.exe");
-                if candidate.exists() { candidate.to_string_lossy().to_string() } else { "ffmpeg".to_string() }
-            } else {
-                "ffmpeg".to_string()
-            };
-            let mut cmd = std::process::Command::new(&ffmpeg_cmd);
-            cmd.args([
-                "-ss", &start_sec.to_string(),
-                "-i", source.to_str().unwrap_or_default(),
-                "-f", "image2pipe",
-                "-vcodec", "rawvideo",
-                "-pix_fmt", "rgba",
-                "-s", "640x360",
-                "-r", "30",
-            ]);
-            
-            if !playing {
-                cmd.args(["-vframes", "1"]);
-            }
-            cmd.arg("-");
+        let start_sec = timestamp_ms as f64 / 1000.0;
+        
+        let ffmpeg_cmd = if std::path::Path::new("ffmpeg.exe").exists() {
+            "ffmpeg.exe".to_string()
+        } else if let Ok(exe_dir) = std::env::current_exe().map(|p| p.parent().unwrap_or(std::path::Path::new(".")).to_path_buf()) {
+            let candidate = exe_dir.join("ffmpeg.exe");
+            if candidate.exists() { candidate.to_string_lossy().to_string() } else { "ffmpeg".to_string() }
+        } else {
+            "ffmpeg".to_string()
+        };
+        let mut cmd = std::process::Command::new(&ffmpeg_cmd);
+        cmd.args([
+            "-ss", &start_sec.to_string(),
+            "-i", source.to_str().unwrap_or_default(),
+            "-f", "image2pipe",
+            "-vcodec", "rawvideo",
+            "-pix_fmt", "rgba",
+            "-s", "640x360",
+            "-r", "30",
+        ]);
+        
+        if !playing {
+            cmd.args(["-vframes", "1"]);
+        }
+        cmd.arg("-");
 
-            let Ok(mut child) = cmd.stdout(Stdio::piped()).stderr(Stdio::null()).spawn() else {
-                return;
-            };
+        let mut child = match cmd.stdout(Stdio::piped()).stderr(Stdio::null()).spawn() {
+            Ok(c) => c,
+            Err(e) => return Err(format!("FFmpeg is missing or failed to start: {}", e)),
+        };
+
+        std::thread::spawn(move || {
             let mut stdout = child.stdout.take().unwrap();
             let frame_size = 640 * 360 * 4;
             let mut buffer = vec![0u8; frame_size];
@@ -85,6 +87,8 @@ impl VideoPlayer {
             
             let _ = child.kill();
         });
+        
+        Ok(())
     }
 
     pub fn update_texture(&mut self, ctx: &egui::Context) {
@@ -371,7 +375,9 @@ impl eframe::App for EditorApp {
         let _was_playing = self.playing;
 
         if self.last_playhead_ms == u64::MAX {
-            self.video_player.request_seek(0, false, ctx.clone());
+            if let Err(e) = self.video_player.request_seek(0, false, ctx.clone()) {
+                self.status = e;
+            }
             self.last_playhead_ms = 0;
         }
 
@@ -460,7 +466,9 @@ impl eframe::App for EditorApp {
                 self.last_playhead_ms = self.playhead_ms;
             }
             if manual_seek {
-                self.video_player.request_seek(self.playhead_ms, self.playing, ctx.clone());
+                if let Err(e) = self.video_player.request_seek(self.playhead_ms, self.playing, ctx.clone()) {
+                    self.status = e;
+                }
             }
 
             // Trim handles.
@@ -524,7 +532,7 @@ impl eframe::App for EditorApp {
                         ui.painter().text(
                             rect.center(),
                             egui::Align2::CENTER_CENTER,
-                            "Loading Video...",
+                            if self.status.contains("FFmpeg is missing") { "Missing FFmpeg" } else { "Loading Video..." },
                             egui::FontId::proportional(16.0),
                             egui::Color32::LIGHT_GRAY,
                         );
@@ -644,7 +652,9 @@ impl eframe::App for EditorApp {
         }
 
         if manual_seek {
-            self.video_player.request_seek(self.playhead_ms, self.playing, ctx.clone());
+            if let Err(e) = self.video_player.request_seek(self.playhead_ms, self.playing, ctx.clone()) {
+                self.status = e;
+            }
         }
         
         self.video_player.update_texture(ctx);
